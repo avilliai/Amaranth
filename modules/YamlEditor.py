@@ -284,10 +284,10 @@ class YamlMainWindow(QMainWindow):
 
         # 创建一个下拉选择框
         self.comboBox = QComboBox()
-        self.comboBox.addItem("config/api.yaml", "外部api设置")
-        self.comboBox.addItem("config/settings.yaml", "基本功能设置")
-        self.comboBox.addItem("config/controller.yaml", "单个功能控制")
-        self.comboBox.addItem("config/welcome.yaml", "加群提醒等设置")
+        self.comboBox.addItem("Manyana/config/api.yaml", "外部api设置")
+        self.comboBox.addItem("Manyana/config/settings.yaml", "基本功能设置")
+        self.comboBox.addItem("Manyana/config/controller.yaml", "单个功能控制")
+        self.comboBox.addItem("Manyana/config/welcome.yaml", "加群提醒等设置")
 
 
         # 创建一个用于显示描述信息的 QLabel
