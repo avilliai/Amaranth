@@ -1,0 +1,5 @@
+# 黑名单列表
+blackList: {}
+
+# 群聊黑名单列表
+groupBlackList: {}

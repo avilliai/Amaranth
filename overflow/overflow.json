@@ -1,0 +1,9 @@
+{
+    "ws_host": "ws://127.0.0.1:3001",
+    "reversed_ws_port": -1,
+    "token": "d44ffc2d9e199d7e77615a7d609c2b078206eece3d86eebe7160ad8d0f6b8e8d",
+    "no_platform": false,
+    "retry_times": 5,
+    "retry_wait_mills": 5000,
+    "retry_rest_mills": 60000
+}

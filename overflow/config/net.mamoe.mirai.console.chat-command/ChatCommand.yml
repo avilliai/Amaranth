@@ -1,0 +1,12 @@
+# 插件是否启用. 设置 false 时禁用插件.
+enabled: true
+# 参数不匹配时输出帮助对象.
+reply_unresolved_command_help: USER
+# 非法参数时输出帮助对象.
+reply_illegal_argument_help: USER
+# 权限不足时输出帮助对象.
+reply_permission_denied_help: CONSOLE
+# 指令被拦截时输出帮助对象.
+reply_intercepted_help: CONSOLE
+# 指令解析失败时输出帮助对象.
+reply_execution_failed_help: CONSOLE
