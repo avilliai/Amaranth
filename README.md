@@ -1,0 +1,3 @@
+新版启动器，基于pydracula，制作中......
+
+![image](https://github.com/avilliai/Amaranth/assets/99066610/760bc0fb-1413-4411-8c47-b833229b3ab6)
