@@ -72,10 +72,10 @@ class EnvironmentChecker(QWidget):
         btn_layout = QVBoxLayout()
 
         # 创建"一键安装"按钮及其子按钮
-        install_all_btn = QPushButton('一键安装Java+Python+miniGit')
+        install_all_btn = QPushButton('一键安装Java+Python+minGit')
         install_java_btn = QPushButton('安装Java')
         install_python_btn = QPushButton('安装Python')
-        install_git_btn = QPushButton('安装miniGit')
+        install_git_btn = QPushButton('安装minGit')
 
         # 将子按钮添加到一个嵌套布局中
         nested_install_layout = QVBoxLayout()
@@ -144,21 +144,20 @@ class EnvironmentChecker(QWidget):
         pull_thread = threading.Thread(target=self.pull_repo1())
         pull_thread.start()
     def pull_repo1(self):
-        try:
-            # 切换到 Manyana 文件夹
-            os.chdir("Manyana")
+        SCRIPT_DIR = os.getcwd()
+        Manyana_DIR = os.path.join(SCRIPT_DIR, "Manyana")
+        setup_bat = os.path.join(Manyana_DIR, "更新脚本.bat")
 
-            # 进入虚拟环境并激活
-            subprocess.Popen(["cmd", "/c", "venv\\Scripts\\activate.bat"], cwd="Manyana", shell=True)
+        os.chdir(Manyana_DIR)  # 改变当前工作目录到Manyana所在目录
 
-            # 返回上级目录
-            os.chdir("..")
+        command = f'start cmd /k "{setup_bat}"'  # 启动一个新的命令提示符窗口执行setup.bat脚本
 
-            # 运行 setUp.py
-            subprocess.Popen(["cmd", "/c", "python", "setUp.py"], cwd="Manyana", shell=True)
+        subprocess.Popen(command, shell=True)
 
-        except Exception as e:
-            print(f"An error occurred: {e}")
+        # 回到原来的工作目录
+        os.chdir(SCRIPT_DIR)
+
+        print(f"Successfully ran setup.bat for: Manyana")
     def set_label_color(self, label, color):
         palette = label.palette()
         palette.setColor(QPalette.WindowText, color)
@@ -217,127 +216,89 @@ class EnvironmentChecker(QWidget):
         git_thread.start()
 
     def install_java(self):
-        # 定义Java压缩包路径和下载URL
-        JAVA_ZIP_URL = "https://d6.injdk.cn/openjdk/openjdk/21/openjdk-21.0.2_windows-x64_bin.zip"
-        JAVA_ZIP_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "openjdk-21.0.2_windows-x64_bin.zip")
-        JAVA_INSTALL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Java")
+        SCRIPT_DIR = os.getcwd()
+        JAVA_ZIP_PATH = os.path.join(SCRIPT_DIR, "environments","openjdk-21.0.2_windows-x64_bin.zip")
+        JAVA_INSTALL_DIR = os.path.join(SCRIPT_DIR, "environments","Java")
 
         # 如果Java安装目录不存在，则创建该目录
         if not os.path.exists(JAVA_INSTALL_DIR):
             os.mkdir(JAVA_INSTALL_DIR)
 
-        # 下载Java压缩包
-        print("Downloading Java...")
-        subprocess.run(["powershell", "-Command", f"Invoke-WebRequest '{JAVA_ZIP_URL}' -OutFile '{JAVA_ZIP_PATH}'"])
+        # 构建PowerShell脚本内容
+        ps_script_content = f"""
+        Write-Output "Unpacking Java..."
+        Expand-Archive -LiteralPath '{JAVA_ZIP_PATH}' -DestinationPath '{JAVA_INSTALL_DIR}' -Force
+        """
 
-        # 解压Java压缩包到安装目录
-        print("Unpacking Java...")
-        subprocess.run(["powershell", "-Command",
-                        f"Expand-Archive -LiteralPath '{JAVA_ZIP_PATH}' -DestinationPath '{JAVA_INSTALL_DIR}' -Force"])
-        print("Unpack over")
+        # 将PowerShell脚本内容写入文件
+        ps_script_path = os.path.join(SCRIPT_DIR, "install_java.ps1")
+        with open(ps_script_path, 'w') as ps_script_file:
+            ps_script_file.write(ps_script_content)
 
-        # 获取当前系统的PATH环境变量
-        result = subprocess.run(
-            ["reg", "query", "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment", "/v", "Path"],
-            capture_output=True, text=True)
-        system_path = result.stdout.split("\n")[-2].split()[2]
-
-        # 检查Java bin目录是否已经存在于系统PATH中，并且添加绝对路径
-        print("Checking if Java bin directory is in PATH...")
-        if f"{JAVA_INSTALL_DIR}\\bin" not in system_path:
-            print("Java bin directory is not in PATH. Adding...")
-            # 添加完整路径到系统的PATH环境变量中
-            subprocess.run(
-                ["reg", "add", "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment", "/v", "Path", "/t",
-                 "REG_EXPAND_SZ", "/d", f"{JAVA_INSTALL_DIR}\\bin;{system_path}", "/f"])
-            if result.returncode == 0:
-                print("Java environment variable set successfully.")
-            else:
-                print(f"Setting Java environment variable failed: {result.returncode}.")
-        else:
-            print("Java bin directory is already in PATH.")
-
+        # 执行PowerShell脚本并保持窗口打开
+        subprocess.run(["powershell", "-NoExit", "-ExecutionPolicy", "Bypass", "-File", ps_script_path])
+        os.remove(ps_script_path)
         # 删除下载的文件
-        os.remove(JAVA_ZIP_PATH)
+        #os.remove(JAVA_ZIP_PATH)
 
     def install_python(self):
-        SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-        # 定义Python压缩包路径和下载URL
-        PYTHON_ZIP_URL = "https://mirrors.huaweicloud.com/python/3.9.0/python-3.9.0a6-embed-amd64.zip"
-        PYTHON_ZIP_PATH = os.path.join(SCRIPT_DIR, "python-3.9.0a6-embed-amd64.zip")
-        PYTHON_INSTALL_DIR = os.path.join(SCRIPT_DIR, "Python39")
+        SCRIPT_DIR = os.getcwd()
+        PYTHON_INSTALL_DIR = os.path.join(SCRIPT_DIR, "environments", "Python39")
+        Python_zip = os.path.join(SCRIPT_DIR, "environments", "python-3.9.0a6-embed-amd64.zip")
 
         # 如果安装目录不存在，则创建该目录
         if not os.path.exists(PYTHON_INSTALL_DIR):
             os.mkdir(PYTHON_INSTALL_DIR)
 
-        # 下载Python压缩包
-        print("Downloading Python...")
-        subprocess.run(["powershell", "-Command", f"Invoke-WebRequest '{PYTHON_ZIP_URL}' -OutFile '{PYTHON_ZIP_PATH}'"])
+        # 构建PowerShell脚本内容
+        ps_script_content = f"""
+        Write-Output "Unpacking Python..."
+        Expand-Archive -LiteralPath '{Python_zip}' -DestinationPath '{PYTHON_INSTALL_DIR}' -Force
 
-        # 解压Python压缩包到安装目录
-        print("Unpacking Python...")
-        subprocess.run(["powershell", "-Command",
-                        f"Expand-Archive -LiteralPath '{PYTHON_ZIP_PATH}' -DestinationPath '{PYTHON_INSTALL_DIR}' -Force"])
-        print("Unpack over")
+        # 复制python39._pth文件到Python安装目录
+        Copy-Item '{os.path.join(SCRIPT_DIR, "environments", "python39._pth")}' '{PYTHON_INSTALL_DIR}'
 
-        # 下载 get-pip.py
-        print("Downloading get-pip.py...")
-        subprocess.run(["powershell", "-Command",
-                        f"Invoke-WebRequest https://mirrors.aliyun.com/pypi/get-pip.py -OutFile '{PYTHON_INSTALL_DIR}\\get-pip.py'"])
+        Write-Output "Installing pip..."
+        & '{PYTHON_INSTALL_DIR}\\python.exe' '{os.path.join(SCRIPT_DIR, "environments", "get-pip.py")}'
 
-        # 安装pip
-        print("Installing pip...")
-        subprocess.run([f"{PYTHON_INSTALL_DIR}\\python.exe", f"{PYTHON_INSTALL_DIR}\\get-pip.py"])
+        # 更新系统环境变量操作需要在PowerShell脚本外部执行
+        """
 
-        # 更新系统环境变量
-        os.environ["Path"] = f"{PYTHON_INSTALL_DIR};{PYTHON_INSTALL_DIR}\\Scripts;" + os.environ["Path"]
+        # 将PowerShell脚本内容写入临时文件
+        ps_script_path = os.path.join(SCRIPT_DIR, "install_python.ps1")
+        with open(ps_script_path, "w") as ps_script_file:
+            ps_script_file.write(ps_script_content)
+        subprocess.run(["powershell", "-NoExit", "-ExecutionPolicy", "Bypass", "-File", ps_script_path])
+        # 在cmd中执行PowerShell脚本
+        #subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ps_script_path], shell=True)
 
-        print("Environment variable set successfully.")
-
-        # 删除下载的文件
-        os.remove(PYTHON_ZIP_PATH)
-        os.remove(os.path.join(PYTHON_INSTALL_DIR, "get-pip.py"))
+        # 删除临时PowerShell脚本文件
+        os.remove(ps_script_path)
 
     def install_git(self):
-        SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+        SCRIPT_DIR = os.getcwd()
         # 定义MinGit下载URL和本地路径
-        MINGIT_URL = "https://mirrors.huaweicloud.com/git-for-windows/v2.24.1.windows.2/MinGit-2.24.1.2-64-bit.zip"
-        MINGIT_ZIP_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "MinGit-2.24.1.2-64-bit.zip")
-        MINGIT_INSTALL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "MinGit")
+        MINGIT_ZIP_PATH = os.path.join(SCRIPT_DIR, "environments", "MinGit-2.24.1.2-64-bit.zip")
+        MINGIT_INSTALL_DIR = os.path.join(SCRIPT_DIR, "environments", "MinGit")
 
-        # 下载MinGit
-        print("Downloading MinGit...")
-        subprocess.run(["powershell", "-Command", f"Invoke-WebRequest '{MINGIT_URL}' -OutFile '{MINGIT_ZIP_PATH}'"])
+        # 构建PowerShell脚本内容
+        ps_script_content = f"""
+        Write-Output "Unpacking MinGit..."
+        Expand-Archive -LiteralPath '{MINGIT_ZIP_PATH}' -DestinationPath '{MINGIT_INSTALL_DIR}' -Force
 
-        # 解压MinGit
-        print("Unpacking MinGit...")
-        subprocess.run(["powershell", "-Command",
-                        f"Expand-Archive -LiteralPath '{MINGIT_ZIP_PATH}' -DestinationPath '{MINGIT_INSTALL_DIR}' -Force"])
+        Remove-Item -Path '{MINGIT_ZIP_PATH}'
+        """
 
-        # 清理下载的ZIP文件
-        os.remove(MINGIT_ZIP_PATH)
+        # 将PowerShell脚本内容写入临时文件
+        ps_script_path = os.path.join(SCRIPT_DIR, "install_git.ps1")
+        with open(ps_script_path, "w") as ps_script_file:
+            ps_script_file.write(ps_script_content)
+        subprocess.run(["powershell", "-NoExit", "-ExecutionPolicy", "Bypass", "-File", ps_script_path])
+        # 在cmd中执行PowerShell脚本
+        #subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ps_script_path], shell=True)
 
-        # 获取当前系统的PATH环境变量
-        result = subprocess.run(
-            ["reg", "query", "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment", "/v", "Path"],
-            capture_output=True, text=True)
-        system_path = result.stdout.split("\n")[-2].split()[2]
-
-        # 检查MinGit cmd目录是否已经存在于系统PATH中，并且添加绝对路径
-        print("Checking if MinGit cmd directory is in PATH...")
-        if f"{MINGIT_INSTALL_DIR}\\cmd" not in system_path:
-            print("MinGit cmd directory is not in PATH. Adding...")
-            # 添加完整路径到系统的PATH环境变量中
-            subprocess.run(
-                ["reg", "add", "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment", "/v", "Path", "/t",
-                 "REG_EXPAND_SZ", "/d", f"{MINGIT_INSTALL_DIR}\\cmd;{system_path}", "/f"])
-            if result.returncode == 0:
-                print("MinGit environment variable set successfully.")
-            else:
-                print(f"Setting MinGit environment variable failed: {result.returncode}.")
-        else:
-            print("MinGit cmd directory is already in PATH.")
+        # 删除临时PowerShell脚本文件
+        os.remove(ps_script_path)
 
     def clone_repo(self):
         clone_thread = threading.Thread(target=self.clone())
@@ -345,55 +306,72 @@ class EnvironmentChecker(QWidget):
 
     def clone(self):
         repo_url = self.repo_combo.currentText()
-        process = subprocess.Popen(
-            ["cmd", "/c", f"git clone {repo_url}"],
-            shell=True
-        )
-        process.wait()
+        script_dir = os.getcwd()  # 获取脚本所在目录的绝对路径
+        git_path = os.path.join(script_dir, "environments","MinGit", "cmd", "git.exe")  # 构建git.exe的绝对路径
+
+        # 使用双引号包裹整个命令，并启动一个新的命令提示符窗口执行命令
+        command = f'start cmd /k "{git_path}" clone --depth 1 {repo_url}'
+
+        # 启动一个新的命令提示符窗口执行命令
+        subprocess.Popen(command, shell=True)
+
+
+
+        # 使用引号和&运算符执行命令
 
     def install_dependencies(self):
         de_thread = threading.Thread(target=self.install_dependencies1())
         de_thread.start()
+
     def install_dependencies1(self):
-        SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+        SCRIPT_DIR = os.getcwd()
+        Manyana_DIR = os.path.join(SCRIPT_DIR, "Manyana")
+        pyDir=os.path.join(SCRIPT_DIR, "environments", "Python39","python.exe")
+        pip_path = os.path.join(SCRIPT_DIR, "environments", "Python39", "Scripts", "pip.exe")
+        venv_activate = os.path.join(SCRIPT_DIR, "Manyana","venv", "Scripts", "activate.bat")
 
-        try:
-            # 进入 Manyana 文件夹
-            os.chdir("./Manyana")
+        # 创建PowerShell脚本内容
+        ps_script_content = f"""
+        cd '{Manyana_DIR}'
 
-            # 构造 pip 的绝对路径
-            pip_path = os.path.join(SCRIPT_DIR, "Python39", "Scripts", "pip.exe")
+        # 设置全局镜像源
+        & '{pip_path}' config set global.index-url https://mirrors.aliyun.com/pypi/simple/
 
-            # 使用指定的 pip 安装依赖
-            subprocess.check_call([pip_path, "install", "-r", "requirements.txt"])
+        # 升级 pip
+        & '{pip_path}' install --user --upgrade pip
 
-            # 设置全局镜像源
-            subprocess.run([pip_path, "config", "set", "global.index-url", "https://mirrors.aliyun.com/pypi/simple/"])
+        # 安装 virtualenv
+        & '{pyDir}' -m venv venv
 
-            # 升级 pip
-            subprocess.run([pip_path, "install", "--user", "--upgrade", "pip"])
+        # 激活虚拟环境
+        & '{venv_activate}'
 
-            # 安装 virtualenv
-            subprocess.run([pip_path, "install", "virtualenv"])
+        # 设置虚拟环境内的镜像源
+        & '{pip_path}' config set global.index-url https://mirrors.aliyun.com/pypi/simple/
 
-            # 创建虚拟环境
-            subprocess.run([os.path.join(SCRIPT_DIR, "Python39", "Scripts", "virtualenv"), "-p", "python3.9", "venv"])
+        # 回到上一级目录
 
-            # 激活虚拟环境
-            venv_activate = os.path.join(SCRIPT_DIR, "venv", "Scripts", "activate.bat")
-            subprocess.run([venv_activate])
+        # 使用指定的 pip 安装依赖
+        & venv\\Scripts\\pip.exe install -r requirements.txt
 
-            # 设置虚拟环境内的镜像源
-            subprocess.run([pip_path, "config", "set", "global.index-url", "https://mirrors.aliyun.com/pypi/simple/"])
+        cd '{SCRIPT_DIR}'
+        """
 
-            # 回到上级目录
-            os.chdir(SCRIPT_DIR)
+        # 将PowerShell脚本内容写入文件
+        ps_script_path = os.path.join(SCRIPT_DIR, "install_dependencies.ps1")
+        with open(ps_script_path, 'w') as ps_script_file:
+            ps_script_file.write(ps_script_content)
 
-            print(f"Successfully installed dependencies for: Manyana")
-        except subprocess.CalledProcessError:
+        # 执行PowerShell脚本并保持窗口打开
+        subprocess.run(["powershell", "-NoExit", "-File", ps_script_path])
 
-            print(f"Failed to install dependencies for: Manyana")
+        # 清理脚本文件
+        os.remove(ps_script_path)  # 注意：如果您希望在执行后手动检查脚本，可以暂时注释掉这行代码
 
+        # 回到上级目录
+        os.chdir(SCRIPT_DIR)
+
+        print(f"Successfully installed dependencies for: Manyana")
     def update_charts(self):
         self.update_memory_chart()
         self.update_cpu_chart()
