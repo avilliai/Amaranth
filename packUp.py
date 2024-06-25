@@ -29,7 +29,7 @@ pyinstaller_command = [
     main_script,  # 主程序
     '--onefile',  # onefile模式
     '--windowed',  # 防止弹出命令行窗口
-    '--icon=icon.ico',  # 使用app.ico作为软件图标
+    '--icon=Launcher.ico',  # 使用app.ico作为软件图标
     '--name=Launcher',  # 设置打包后的文件名为app
     '--clean',  # 清理打包前的缓存和临时文件
     '--runtime-tmpdir=Temp',  # 设置运行时的临时目录为项目目录下的Temp文件夹

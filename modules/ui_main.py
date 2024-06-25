@@ -683,7 +683,7 @@ class Ui_MainWindow(object):
         self.btn_new.setFont(font)
         self.btn_new.setCursor(QCursor(Qt.PointingHandCursor))
         self.btn_new.setLayoutDirection(Qt.LeftToRight)
-        self.btn_new.setStyleSheet(u"background-image: url(:/icons/images/icons/cil-file.png);")
+        self.btn_new.setStyleSheet(u"background-image: url(:/icons/images/icons/cil-options.png);")
 
         self.verticalLayout_8.addWidget(self.btn_new)
 
@@ -695,7 +695,7 @@ class Ui_MainWindow(object):
         self.btn_save.setFont(font)
         self.btn_save.setCursor(QCursor(Qt.PointingHandCursor))
         self.btn_save.setLayoutDirection(Qt.LeftToRight)
-        self.btn_save.setStyleSheet(u"background-image: url(:/icons/images/icons/cil-save.png)")
+        self.btn_save.setStyleSheet(u"background-image: url(:/icons/images/icons/cil-expand-down.png)")
 
         self.verticalLayout_8.addWidget(self.btn_save)
 
@@ -1032,7 +1032,7 @@ class Ui_MainWindow(object):
         self.stackedWidget.setStyleSheet(u"background: transparent;")
         self.home = QWidget()
         self.home.setObjectName(u"home")
-        self.home.setStyleSheet(u"background-image: url(:/images/images/images/PyDracula_vertical.png);\n"
+        self.home.setStyleSheet(u"background-image: url(:/images/images/images/wWFSwF6A.png);\n"
 "background-position: center;\n"
 "background-repeat: no-repeat;")
         self.stackedWidget.addWidget(self.home)
@@ -1542,10 +1542,10 @@ class Ui_MainWindow(object):
         self.titleLeftDescription.setText(QCoreApplication.translate("MainWindow", u"Modern GUI / Flat Style", None))
         self.toggleButton.setText(QCoreApplication.translate("MainWindow", u"Hide", None))
         self.btn_home.setText(QCoreApplication.translate("MainWindow", u"Home", None))
-        self.btn_widgets.setText(QCoreApplication.translate("MainWindow", u"settings", None))
-        self.btn_new.setText(QCoreApplication.translate("MainWindow", u"New", None))
-        self.btn_save.setText(QCoreApplication.translate("MainWindow", u"Save", None))
-        self.btn_exit.setText(QCoreApplication.translate("MainWindow", u"Exit", None))
+        self.btn_widgets.setText(QCoreApplication.translate("MainWindow", u"RunBot", None))
+        self.btn_new.setText(QCoreApplication.translate("MainWindow", u"settings", None))
+        self.btn_save.setText(QCoreApplication.translate("MainWindow", u"SetUpTools", None))
+        self.btn_exit.setText(QCoreApplication.translate("MainWindow", u"ChatUI", None))
         self.toggleLeftBox.setText(QCoreApplication.translate("MainWindow", u"Left Box", None))
         self.extraLabel.setText(QCoreApplication.translate("MainWindow", u"Left Box", None))
 #if QT_CONFIG(tooltip)

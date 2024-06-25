@@ -1,19 +1,15 @@
-
-
-import sys
 import os
-import platform
-
-from PySide6.QtWidgets import QMainWindow
+import sys
 
 # IMPORT / GUI AND MODULES AND WIDGETS
 # ///////////////////////////////////////////////////////////////
 from modules import *
-from modules.YamlEditor import YamlEditor, YamlMainWindow
+from modules.HomePage import jsonEditor
+
+from modules.YamlEditor import YamlMainWindow
 from modules.cmdRunner import ScriptRunner
 from modules.tools import EnvironmentChecker
 
-from widgets import *
 os.environ["QT_FONT_DPI"] = "96" # FIX Problem for High DPI and Scale above 100%
 
 widgets = None
@@ -62,16 +58,25 @@ class MainWindow(QMainWindow):
         widgets.btn_new.clicked.connect(self.buttonClick)
         widgets.btn_save.clicked.connect(self.buttonClick)
         widgets.btn_exit.clicked.connect(self.buttonClick)
-        #yaml页面
-        self.yamlEditorPage1 = YamlMainWindow()
-        self.ui.stackedWidget.addWidget(self.yamlEditorPage1)
-        self.yamlEditorPage1.setStyleSheet(self.styleSheet())
-
+        try:
+            #yaml页面
+            self.yamlEditorPage1 = YamlMainWindow()
+            self.ui.stackedWidget.addWidget(self.yamlEditorPage1)
+            self.yamlEditorPage1.setStyleSheet(self.styleSheet())
+        except:
+            self.yamlEditorPage1=widgets.home
         self.cmdRunner=ScriptRunner()
         self.ui.stackedWidget.addWidget(self.cmdRunner)
         #工具页面
         self.setUpTools=EnvironmentChecker()
         self.ui.stackedWidget.addWidget(self.setUpTools)
+        # 工具页面
+        try:
+            self.HomeP= jsonEditor()
+            self.ui.stackedWidget.addWidget(self.HomeP)
+        except:
+            CustomDialog.showMessage("未搭建Manyana，请在拉取源码并完成搭建后重启本启动器.")
+            self.HomeP=self.setUpTools
         # EXTRA LEFT BOX
         def openCloseLeftBox():
             UIFunctions.toggleLeftBox(self, True)
@@ -87,22 +92,12 @@ class MainWindow(QMainWindow):
         # ///////////////////////////////////////////////////////////////
         self.show()
 
-        # SET CUSTOM THEME
-        # ///////////////////////////////////////////////////////////////
-        useCustomTheme = False
-        themeFile = "themes\py_dracula_light.qss"
-
-        # SET THEME AND HACKS
-        if useCustomTheme:
-            # LOAD AND APPLY STYLE
-            UIFunctions.theme(self, themeFile, True)
-
-            # SET HACKS
-            AppFunctions.setThemeHack(self)
 
         # SET HOME PAGE AND SELECT MENU
         # ///////////////////////////////////////////////////////////////
-        widgets.stackedWidget.setCurrentWidget(widgets.home)
+
+        widgets.stackedWidget.setCurrentWidget(self.HomeP)
+
         widgets.btn_home.setStyleSheet(UIFunctions.selectMenu(widgets.btn_home.styleSheet()))
 
 
@@ -116,7 +111,7 @@ class MainWindow(QMainWindow):
 
         # SHOW HOME PAGE
         if btnName == "btn_home":
-            widgets.stackedWidget.setCurrentWidget(widgets.home)
+            widgets.stackedWidget.setCurrentWidget(self.HomeP)
             UIFunctions.resetStyle(self, btnName)
             btn.setStyleSheet(UIFunctions.selectMenu(btn.styleSheet()))
 
@@ -168,7 +163,24 @@ class MainWindow(QMainWindow):
         # 手动调用子页面的清理逻辑
         self.cmdRunner.cleanup()
         event.accept()  # 接受关闭事件，正常关闭窗口
+from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton
 
+class CustomDialog(QDialog):
+    def __init__(self, message):
+        super().__init__()
+        self.setWindowTitle("Custom Dialog")
+        layout = QVBoxLayout()
+        label = QLabel(message)
+        layout.addWidget(label)
+        okButton = QPushButton("OK")
+        okButton.clicked.connect(self.accept)  # Close the dialog when OK button is clicked
+        layout.addWidget(okButton)
+        self.setLayout(layout)
+
+    @staticmethod
+    def showMessage(message):
+        dialog = CustomDialog(message)
+        dialog.exec()
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setWindowIcon(QIcon("icon.ico"))

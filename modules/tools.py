@@ -1,5 +1,8 @@
+import os
 import sys
 import subprocess
+import threading
+
 import psutil
 from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QGroupBox, QGridLayout, QComboBox
 from PySide6.QtCore import QTimer, QSize
@@ -90,6 +93,7 @@ class EnvironmentChecker(QWidget):
         # 创建克隆仓库部分
         clone_layout = QHBoxLayout()
         clone_repo_btn = QPushButton('克隆仓库')
+        pull_repo_btn=QPushButton('更新仓库')
         self.repo_combo = QComboBox()
         repo_sources = [
             "https://github.com/avilliai/Manyana.git",
@@ -110,7 +114,7 @@ class EnvironmentChecker(QWidget):
         btn_layout.addWidget(install_group)
         btn_layout.addLayout(clone_layout)
         btn_layout.addWidget(install_deps_btn)
-        btn_layout.addWidget(QPushButton('更新仓库'))  # 更新仓库按钮
+        btn_layout.addWidget(pull_repo_btn)  # 更新仓库按钮
 
         # 将顶部布局和按钮布局添加到主布局
         main_layout.addLayout(top_layout)
@@ -126,6 +130,7 @@ class EnvironmentChecker(QWidget):
         install_git_btn.clicked.connect(self.install_git)
         clone_repo_btn.clicked.connect(self.clone_repo)
         install_deps_btn.clicked.connect(self.install_dependencies)
+        pull_repo_btn.clicked.connect(self.pull_repo)
 
         # 创建一个定时器来定期检查环境变量和更新图表
         self.timer = QTimer(self)
@@ -135,7 +140,25 @@ class EnvironmentChecker(QWidget):
         # 第一次启动时立即检查环境变量和更新图表
         self.check_environment()
         self.update_charts()
+    def pull_repo(self):
+        pull_thread = threading.Thread(target=self.pull_repo1())
+        pull_thread.start()
+    def pull_repo1(self):
+        try:
+            # 切换到 Manyana 文件夹
+            os.chdir("Manyana")
 
+            # 进入虚拟环境并激活
+            subprocess.Popen(["cmd", "/c", "venv\\Scripts\\activate.bat"], cwd="Manyana", shell=True)
+
+            # 返回上级目录
+            os.chdir("..")
+
+            # 运行 setUp.py
+            subprocess.Popen(["cmd", "/c", "python", "setUp.py"], cwd="Manyana", shell=True)
+
+        except Exception as e:
+            print(f"An error occurred: {e}")
     def set_label_color(self, label, color):
         palette = label.palette()
         palette.setColor(QPalette.WindowText, color)
@@ -184,34 +207,192 @@ class EnvironmentChecker(QWidget):
             return None
 
     def install_all(self):
-        self.install_java()
-        self.install_python()
-        self.install_git()
+        java_thread = threading.Thread(target=self.install_java)
+        python_thread = threading.Thread(target=self.install_python)
+        git_thread = threading.Thread(target=self.install_git)
+
+        # 启动线程
+        java_thread.start()
+        python_thread.start()
+        git_thread.start()
 
     def install_java(self):
-        print("安装Java的逻辑")
+        # 定义Java压缩包路径和下载URL
+        JAVA_ZIP_URL = "https://d6.injdk.cn/openjdk/openjdk/21/openjdk-21.0.2_windows-x64_bin.zip"
+        JAVA_ZIP_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "openjdk-21.0.2_windows-x64_bin.zip")
+        JAVA_INSTALL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Java")
+
+        # 如果Java安装目录不存在，则创建该目录
+        if not os.path.exists(JAVA_INSTALL_DIR):
+            os.mkdir(JAVA_INSTALL_DIR)
+
+        # 下载Java压缩包
+        print("Downloading Java...")
+        subprocess.run(["powershell", "-Command", f"Invoke-WebRequest '{JAVA_ZIP_URL}' -OutFile '{JAVA_ZIP_PATH}'"])
+
+        # 解压Java压缩包到安装目录
+        print("Unpacking Java...")
+        subprocess.run(["powershell", "-Command",
+                        f"Expand-Archive -LiteralPath '{JAVA_ZIP_PATH}' -DestinationPath '{JAVA_INSTALL_DIR}' -Force"])
+        print("Unpack over")
+
+        # 获取当前系统的PATH环境变量
+        result = subprocess.run(
+            ["reg", "query", "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment", "/v", "Path"],
+            capture_output=True, text=True)
+        system_path = result.stdout.split("\n")[-2].split()[2]
+
+        # 检查Java bin目录是否已经存在于系统PATH中，并且添加绝对路径
+        print("Checking if Java bin directory is in PATH...")
+        if f"{JAVA_INSTALL_DIR}\\bin" not in system_path:
+            print("Java bin directory is not in PATH. Adding...")
+            # 添加完整路径到系统的PATH环境变量中
+            subprocess.run(
+                ["reg", "add", "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment", "/v", "Path", "/t",
+                 "REG_EXPAND_SZ", "/d", f"{JAVA_INSTALL_DIR}\\bin;{system_path}", "/f"])
+            if result.returncode == 0:
+                print("Java environment variable set successfully.")
+            else:
+                print(f"Setting Java environment variable failed: {result.returncode}.")
+        else:
+            print("Java bin directory is already in PATH.")
+
+        # 删除下载的文件
+        os.remove(JAVA_ZIP_PATH)
 
     def install_python(self):
-        print("安装Python的逻辑")
+        SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+        # 定义Python压缩包路径和下载URL
+        PYTHON_ZIP_URL = "https://mirrors.huaweicloud.com/python/3.9.0/python-3.9.0a6-embed-amd64.zip"
+        PYTHON_ZIP_PATH = os.path.join(SCRIPT_DIR, "python-3.9.0a6-embed-amd64.zip")
+        PYTHON_INSTALL_DIR = os.path.join(SCRIPT_DIR, "Python39")
+
+        # 如果安装目录不存在，则创建该目录
+        if not os.path.exists(PYTHON_INSTALL_DIR):
+            os.mkdir(PYTHON_INSTALL_DIR)
+
+        # 下载Python压缩包
+        print("Downloading Python...")
+        subprocess.run(["powershell", "-Command", f"Invoke-WebRequest '{PYTHON_ZIP_URL}' -OutFile '{PYTHON_ZIP_PATH}'"])
+
+        # 解压Python压缩包到安装目录
+        print("Unpacking Python...")
+        subprocess.run(["powershell", "-Command",
+                        f"Expand-Archive -LiteralPath '{PYTHON_ZIP_PATH}' -DestinationPath '{PYTHON_INSTALL_DIR}' -Force"])
+        print("Unpack over")
+
+        # 下载 get-pip.py
+        print("Downloading get-pip.py...")
+        subprocess.run(["powershell", "-Command",
+                        f"Invoke-WebRequest https://mirrors.aliyun.com/pypi/get-pip.py -OutFile '{PYTHON_INSTALL_DIR}\\get-pip.py'"])
+
+        # 安装pip
+        print("Installing pip...")
+        subprocess.run([f"{PYTHON_INSTALL_DIR}\\python.exe", f"{PYTHON_INSTALL_DIR}\\get-pip.py"])
+
+        # 更新系统环境变量
+        os.environ["Path"] = f"{PYTHON_INSTALL_DIR};{PYTHON_INSTALL_DIR}\\Scripts;" + os.environ["Path"]
+
+        print("Environment variable set successfully.")
+
+        # 删除下载的文件
+        os.remove(PYTHON_ZIP_PATH)
+        os.remove(os.path.join(PYTHON_INSTALL_DIR, "get-pip.py"))
 
     def install_git(self):
-        print("安装miniGit的逻辑")
+        SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+        # 定义MinGit下载URL和本地路径
+        MINGIT_URL = "https://mirrors.huaweicloud.com/git-for-windows/v2.24.1.windows.2/MinGit-2.24.1.2-64-bit.zip"
+        MINGIT_ZIP_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "MinGit-2.24.1.2-64-bit.zip")
+        MINGIT_INSTALL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "MinGit")
+
+        # 下载MinGit
+        print("Downloading MinGit...")
+        subprocess.run(["powershell", "-Command", f"Invoke-WebRequest '{MINGIT_URL}' -OutFile '{MINGIT_ZIP_PATH}'"])
+
+        # 解压MinGit
+        print("Unpacking MinGit...")
+        subprocess.run(["powershell", "-Command",
+                        f"Expand-Archive -LiteralPath '{MINGIT_ZIP_PATH}' -DestinationPath '{MINGIT_INSTALL_DIR}' -Force"])
+
+        # 清理下载的ZIP文件
+        os.remove(MINGIT_ZIP_PATH)
+
+        # 获取当前系统的PATH环境变量
+        result = subprocess.run(
+            ["reg", "query", "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment", "/v", "Path"],
+            capture_output=True, text=True)
+        system_path = result.stdout.split("\n")[-2].split()[2]
+
+        # 检查MinGit cmd目录是否已经存在于系统PATH中，并且添加绝对路径
+        print("Checking if MinGit cmd directory is in PATH...")
+        if f"{MINGIT_INSTALL_DIR}\\cmd" not in system_path:
+            print("MinGit cmd directory is not in PATH. Adding...")
+            # 添加完整路径到系统的PATH环境变量中
+            subprocess.run(
+                ["reg", "add", "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment", "/v", "Path", "/t",
+                 "REG_EXPAND_SZ", "/d", f"{MINGIT_INSTALL_DIR}\\cmd;{system_path}", "/f"])
+            if result.returncode == 0:
+                print("MinGit environment variable set successfully.")
+            else:
+                print(f"Setting MinGit environment variable failed: {result.returncode}.")
+        else:
+            print("MinGit cmd directory is already in PATH.")
 
     def clone_repo(self):
+        clone_thread = threading.Thread(target=self.clone())
+        clone_thread.start()
+
+    def clone(self):
         repo_url = self.repo_combo.currentText()
-        try:
-            subprocess.check_call(f"git clone {repo_url}", shell=True)
-            print(f"成功克隆仓库：{repo_url}")
-        except subprocess.CalledProcessError:
-            print(f"克隆仓库失败：{repo_url}")
+        process = subprocess.Popen(
+            ["cmd", "/c", f"git clone {repo_url}"],
+            shell=True
+        )
+        process.wait()
 
     def install_dependencies(self):
-        repo_url = self.repo_combo.currentText().split('/')[-1].replace('.git', '')
+        de_thread = threading.Thread(target=self.install_dependencies1())
+        de_thread.start()
+    def install_dependencies1(self):
+        SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
         try:
-            subprocess.check_call(f"cd {repo_url} && ./deploy.bat", shell=True)
-            print(f"成功安装依赖：{repo_url}")
+            # 进入 Manyana 文件夹
+            os.chdir("./Manyana")
+
+            # 构造 pip 的绝对路径
+            pip_path = os.path.join(SCRIPT_DIR, "Python39", "Scripts", "pip.exe")
+
+            # 使用指定的 pip 安装依赖
+            subprocess.check_call([pip_path, "install", "-r", "requirements.txt"])
+
+            # 设置全局镜像源
+            subprocess.run([pip_path, "config", "set", "global.index-url", "https://mirrors.aliyun.com/pypi/simple/"])
+
+            # 升级 pip
+            subprocess.run([pip_path, "install", "--user", "--upgrade", "pip"])
+
+            # 安装 virtualenv
+            subprocess.run([pip_path, "install", "virtualenv"])
+
+            # 创建虚拟环境
+            subprocess.run([os.path.join(SCRIPT_DIR, "Python39", "Scripts", "virtualenv"), "-p", "python3.9", "venv"])
+
+            # 激活虚拟环境
+            venv_activate = os.path.join(SCRIPT_DIR, "venv", "Scripts", "activate.bat")
+            subprocess.run([venv_activate])
+
+            # 设置虚拟环境内的镜像源
+            subprocess.run([pip_path, "config", "set", "global.index-url", "https://mirrors.aliyun.com/pypi/simple/"])
+
+            # 回到上级目录
+            os.chdir(SCRIPT_DIR)
+
+            print(f"Successfully installed dependencies for: Manyana")
         except subprocess.CalledProcessError:
-            print(f"安装依赖失败：{repo_url}")
+
+            print(f"Failed to install dependencies for: Manyana")
 
     def update_charts(self):
         self.update_memory_chart()
