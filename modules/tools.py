@@ -326,7 +326,6 @@ class EnvironmentChecker(QWidget):
     def install_dependencies1(self):
         SCRIPT_DIR = os.getcwd()
         Manyana_DIR = os.path.join(SCRIPT_DIR, "Manyana")
-        pyDir=os.path.join(SCRIPT_DIR, "environments", "Python39","python.exe")
         pip_path = os.path.join(SCRIPT_DIR, "environments", "Python39", "Scripts", "pip.exe")
         venv_activate = os.path.join(SCRIPT_DIR, "Manyana","venv", "Scripts", "activate.bat")
 
@@ -341,7 +340,10 @@ class EnvironmentChecker(QWidget):
         & '{pip_path}' install --user --upgrade pip
 
         # 安装 virtualenv
-        & '{pyDir}' -m venv venv
+        & '{pip_path}' install virtualenv
+
+        # 创建虚拟环境
+        & virtualenv -p python3.9 venv
 
         # 激活虚拟环境
         & '{venv_activate}'
