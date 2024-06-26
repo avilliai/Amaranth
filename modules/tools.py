@@ -244,7 +244,7 @@ class EnvironmentChecker(QWidget):
     def install_python(self):
         SCRIPT_DIR = os.getcwd()
         PYTHON_INSTALL_DIR = os.path.join(SCRIPT_DIR, "environments", "Python39")
-        Python_zip = os.path.join(SCRIPT_DIR, "environments", "python-3.9.0a6-embed-amd64.zip")
+        Python_zip = os.path.join(SCRIPT_DIR, "environments", "python-3.9.0-embed-amd64.zip")
 
         # 如果安装目录不存在，则创建该目录
         if not os.path.exists(PYTHON_INSTALL_DIR):
@@ -327,6 +327,7 @@ class EnvironmentChecker(QWidget):
         SCRIPT_DIR = os.getcwd()
         Manyana_DIR = os.path.join(SCRIPT_DIR, "Manyana")
         pip_path = os.path.join(SCRIPT_DIR, "environments", "Python39", "Scripts", "pip.exe")
+        PYTHON_dir=os.path.join(SCRIPT_DIR,"environments", "Python39", "python.exe")
         venv_activate = os.path.join(SCRIPT_DIR, "Manyana","venv", "Scripts", "activate.bat")
 
         # 创建PowerShell脚本内容
@@ -343,7 +344,7 @@ class EnvironmentChecker(QWidget):
         & '{pip_path}' install virtualenv
 
         # 创建虚拟环境
-        & virtualenv -p python3.9 venv
+        & '{PYTHON_dir}' -m virtualenv -p '{PYTHON_dir}' venv
 
         # 激活虚拟环境
         & '{venv_activate}'
