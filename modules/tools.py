@@ -21,7 +21,7 @@ class EnvironmentChecker(QWidget):
         top_layout = QHBoxLayout()
 
         # 创建环境变量检查组
-        env_group = QGroupBox("环境变量检查")
+        env_group = QGroupBox("全局环境变量检查(无需在意)")
         env_layout = QVBoxLayout()
 
         self.java_status_label = QLabel("Java: Checking...")
@@ -71,7 +71,7 @@ class EnvironmentChecker(QWidget):
         # 创建按钮布局
         btn_layout = QVBoxLayout()
 
-        # 创建"一键安装"按钮及其子按钮
+        '''# 创建"一键安装"按钮及其子按钮
         install_all_btn = QPushButton('一键安装Java+Python+minGit')
         install_java_btn = QPushButton('安装Java')
         install_python_btn = QPushButton('安装Python')
@@ -81,19 +81,19 @@ class EnvironmentChecker(QWidget):
         nested_install_layout = QVBoxLayout()
         nested_install_layout.addWidget(install_java_btn)
         nested_install_layout.addWidget(install_python_btn)
-        nested_install_layout.addWidget(install_git_btn)
+        nested_install_layout.addWidget(install_git_btn)'''
 
         # 将"一键安装"按钮和嵌套布局添加到一个组框中
         install_group = QGroupBox()
         install_layout = QVBoxLayout()
-        install_layout.addWidget(install_all_btn)
-        install_layout.addLayout(nested_install_layout)
+        #install_layout.addWidget(install_all_btn)
+        #install_layout.addLayout(nested_install_layout)
         install_group.setLayout(install_layout)
 
         # 创建克隆仓库部分
         clone_layout = QHBoxLayout()
         clone_repo_btn = QPushButton('克隆仓库')
-        pull_repo_btn=QPushButton('更新仓库')
+        pull_repo_btn=QPushButton('更新仓库(更新后需要重启启动器)')
         self.repo_combo = QComboBox()
         repo_sources = [
             "https://github.com/avilliai/Manyana.git",
@@ -108,12 +108,12 @@ class EnvironmentChecker(QWidget):
         clone_layout.addWidget(self.repo_combo)
 
         # 创建自动安装依赖按钮
-        install_deps_btn = QPushButton('自动安装依赖')
+        #install_deps_btn = QPushButton('自动安装依赖')
 
         # 将按钮添加到布局
         btn_layout.addWidget(install_group)
         btn_layout.addLayout(clone_layout)
-        btn_layout.addWidget(install_deps_btn)
+        #btn_layout.addWidget(install_deps_btn)
         btn_layout.addWidget(pull_repo_btn)  # 更新仓库按钮
 
         # 将顶部布局和按钮布局添加到主布局
@@ -124,12 +124,12 @@ class EnvironmentChecker(QWidget):
         self.setWindowTitle('Environment Checker')
 
         # 连接按钮点击事件
-        install_all_btn.clicked.connect(self.install_all)
-        install_java_btn.clicked.connect(self.install_java)
-        install_python_btn.clicked.connect(self.install_python)
-        install_git_btn.clicked.connect(self.install_git)
+        #install_all_btn.clicked.connect(self.install_all)
+        #install_java_btn.clicked.connect(self.install_java)
+        #install_python_btn.clicked.connect(self.install_python)
+        #install_git_btn.clicked.connect(self.install_git)
         clone_repo_btn.clicked.connect(self.clone_repo)
-        install_deps_btn.clicked.connect(self.install_dependencies)
+        #install_deps_btn.clicked.connect(self.install_dependencies)
         pull_repo_btn.clicked.connect(self.pull_repo)
 
         # 创建一个定时器来定期检查环境变量和更新图表
@@ -143,21 +143,24 @@ class EnvironmentChecker(QWidget):
     def pull_repo(self):
         pull_thread = threading.Thread(target=self.pull_repo1())
         pull_thread.start()
+
     def pull_repo1(self):
         SCRIPT_DIR = os.getcwd()
         Manyana_DIR = os.path.join(SCRIPT_DIR, "Manyana")
-        setup_bat = os.path.join(Manyana_DIR, "更新脚本.bat")
+        PYTHON_EXE = os.path.join(SCRIPT_DIR, "environments", "Python39", "python.exe")
+        setup_script = os.path.join(Manyana_DIR, "setUp.py")
 
         os.chdir(Manyana_DIR)  # 改变当前工作目录到Manyana所在目录
 
-        command = f'start cmd /k "{setup_bat}"'  # 启动一个新的命令提示符窗口执行setup.bat脚本
+        command = f'start cmd /k "{PYTHON_EXE} {setup_script}"'  # 启动一个新的命令提示符窗口执行Python脚本
 
         subprocess.Popen(command, shell=True)
 
         # 回到原来的工作目录
         os.chdir(SCRIPT_DIR)
 
-        print(f"Successfully ran setup.bat for: Manyana")
+        print(f"Successfully ran setUp.py for: Manyana")
+
     def set_label_color(self, label, color):
         palette = label.palette()
         palette.setColor(QPalette.WindowText, color)
@@ -209,7 +212,6 @@ class EnvironmentChecker(QWidget):
         java_thread = threading.Thread(target=self.install_java)
         python_thread = threading.Thread(target=self.install_python)
         git_thread = threading.Thread(target=self.install_git)
-
         # 启动线程
         java_thread.start()
         python_thread.start()
@@ -260,8 +262,6 @@ class EnvironmentChecker(QWidget):
 
         Write-Output "Installing pip..."
         & '{PYTHON_INSTALL_DIR}\\python.exe' '{os.path.join(SCRIPT_DIR, "environments", "get-pip.py")}'
-
-        # 更新系统环境变量操作需要在PowerShell脚本外部执行
         """
 
         # 将PowerShell脚本内容写入临时文件
@@ -285,8 +285,6 @@ class EnvironmentChecker(QWidget):
         ps_script_content = f"""
         Write-Output "Unpacking MinGit..."
         Expand-Archive -LiteralPath '{MINGIT_ZIP_PATH}' -DestinationPath '{MINGIT_INSTALL_DIR}' -Force
-
-        Remove-Item -Path '{MINGIT_ZIP_PATH}'
         """
 
         # 将PowerShell脚本内容写入临时文件
@@ -366,8 +364,7 @@ class EnvironmentChecker(QWidget):
             ps_script_file.write(ps_script_content)
 
         # 执行PowerShell脚本并保持窗口打开
-        subprocess.run(["powershell", "-NoExit", "-File", ps_script_path])
-
+        subprocess.run(["powershell", "-NoExit", "-ExecutionPolicy", "Bypass", "-File", ps_script_path])
         # 清理脚本文件
         os.remove(ps_script_path)  # 注意：如果您希望在执行后手动检查脚本，可以暂时注释掉这行代码
 

@@ -288,6 +288,8 @@ class YamlMainWindow(QMainWindow):
         self.comboBox.addItem("Manyana/config/settings.yaml", "基本功能设置")
         self.comboBox.addItem("Manyana/config/controller.yaml", "单个功能控制")
         self.comboBox.addItem("Manyana/config/welcome.yaml", "加群提醒等设置")
+        self.comboBox.addItem("Manyana/config/noResponse.yaml", "屏蔽词")
+        self.comboBox.addItem("Manyana/config/gachaSettings.yaml", "额外设定")
 
 
         # 创建一个用于显示描述信息的 QLabel

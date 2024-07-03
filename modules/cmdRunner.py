@@ -2,10 +2,9 @@ import re
 import signal
 import sys
 import os
-
 import psutil
 from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QTextEdit, QStackedWidget, QHBoxLayout
-from PySide6.QtCore import QProcess, QEvent
+from PySide6.QtCore import QProcess, QEvent, QTimer
 
 class ScriptRunner(QWidget):
     def __init__(self):
@@ -13,6 +12,13 @@ class ScriptRunner(QWidget):
         self.initUI()
         self.processes = []  # 用于存储 QProcess 对象
         self.current_index = None  # 用于存储当前显示的页面索引
+        self.output_buffers = ['', '', '']  # 缓存每个页面的输出内容
+        self.output_limit = 90000  # 设置输出缓存的最大长度
+
+        # 定期检查缓存长度，超出限制时清除
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.check_output_length)
+        self.timer.start(5000)  # 每5秒检查一次
 
     def initUI(self):
         main_layout = QVBoxLayout()
@@ -40,11 +46,11 @@ class ScriptRunner(QWidget):
         btn_layout.addWidget(self.button1)
 
         self.button2 = QPushButton('启动Manyana')
-        self.button2.clicked.connect(lambda: self.handle_button_click(1, './Manyana/启动脚本(防闪退).bat'))
+        self.button2.clicked.connect(lambda: self.handle_button_click(1, './Manyana/main.py', python=True))
         btn_layout.addWidget(self.button2)
 
         self.button3 = QPushButton('启动bing_dalle3')
-        self.button3.clicked.connect(lambda: self.handle_button_click(2, './Manyana/bing-dalle3启动脚本.bat'))
+        self.button3.clicked.connect(lambda: self.handle_button_click(2, './Manyana/bing_image_creator.py', python=True))
         btn_layout.addWidget(self.button3)
 
         # 将按钮布局和QStackedWidget添加到主布局
@@ -57,16 +63,16 @@ class ScriptRunner(QWidget):
     def set_text_edit_style(self, text_edit):
         text_edit.setStyleSheet("background-color: gray; color: black;")
 
-    def handle_button_click(self, index, script_path):
+    def handle_button_click(self, index, script_path, python=False):
         if self.current_index == index:
             # 如果当前显示的页面就是点击的按钮对应的页面，则重启脚本
-            self.restart_script(index, script_path)
+            self.restart_script(index, script_path, python)
         else:
             # 否则，只切换页面
             self.stackedWidget.setCurrentIndex(index)
             self.current_index = index
 
-    def restart_script(self, index, script_path):
+    def restart_script(self, index, script_path, python):
         # 终止当前页面的脚本
         if len(self.processes) > index and self.processes[index].state() != QProcess.NotRunning:
             pid = self.processes[index].processId()
@@ -74,9 +80,9 @@ class ScriptRunner(QWidget):
             self.kill_process(self.processes[index])
 
         # 重新启动脚本
-        self.run_script(index, script_path)
+        self.run_script(index, script_path, python)
 
-    def run_script(self, index, script_path):
+    def run_script(self, index, script_path, python):
         text_edit = self.stackedWidget.widget(index)
         process = QProcess(self)
         if len(self.processes) > index:
@@ -89,14 +95,18 @@ class ScriptRunner(QWidget):
         working_directory = os.path.dirname(script_path)
         process.setWorkingDirectory(working_directory)
 
-        process.setProgram("cmd.exe")
-        process.setArguments(['/c', os.path.basename(script_path)])
+        if python:
+            process.setProgram("./environments/Python39/python.exe")
+            process.setArguments([os.path.basename(script_path)])
+        else:
+            process.setProgram("cmd.exe")
+            process.setArguments(['/c', os.path.basename(script_path)])
 
-        process.readyReadStandardOutput.connect(lambda: self.read_output(process, text_edit))
-        process.readyReadStandardError.connect(lambda: self.read_output(process, text_edit))
+        process.readyReadStandardOutput.connect(lambda: self.read_output(process, text_edit, index))
+        process.readyReadStandardError.connect(lambda: self.read_output(process, text_edit, index))
         process.start()
 
-    def read_output(self, process, text_edit):
+    def read_output(self, process, text_edit, index):
         output = process.readAllStandardOutput().data()
         error_output = process.readAllStandardError().data()
 
@@ -105,6 +115,24 @@ class ScriptRunner(QWidget):
 
         text_edit.append(decoded_output)
         text_edit.append(decoded_error_output)
+
+        # 将输出保存到缓存
+        self.output_buffers[index] += decoded_output + decoded_error_output
+
+    def check_output_length(self):
+        # 检查每个页面的输出缓存长度，超过限制则清除
+        for index, buffer in enumerate(self.output_buffers):
+            if len(buffer) > self.output_limit:
+                self.output_buffers[index] = ''
+                self.stackedWidget.widget(index).clear()
+                print(f"页面 {index} 的输出缓存已清除")
+
+    def clear_logs(self):
+        # 清除所有页面的输出
+        for i in range(self.stackedWidget.count()):
+            self.stackedWidget.widget(i).clear()
+            self.output_buffers[i] = ''
+        print("所有页面的输出缓存已清除")
 
     def clean_output(self, text):
         # 移除 ANSI 转义序列
@@ -166,7 +194,6 @@ class ScriptRunner(QWidget):
         print("关闭")
         self.cleanup()
         event.accept()  # 接受关闭事件，正常关闭窗口
-
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
