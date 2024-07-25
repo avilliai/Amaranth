@@ -31,7 +31,7 @@ class MainWindow(QMainWindow):
 
         # APP NAME
         # ///////////////////////////////////////////////////////////////
-        title = "PyDracula - Modern GUI"
+        title = "启动器"
         description = "Manyana"
         # APPLY TEXTS
         self.setWindowTitle(title)
@@ -70,6 +70,7 @@ class MainWindow(QMainWindow):
         #工具页面
         self.setUpTools=EnvironmentChecker()
         self.ui.stackedWidget.addWidget(self.setUpTools)
+        self.setUpTools.setStyleSheet("#EnvironmentChecker { background-image: url('images/chatbox.jpg'); }")
         # 工具页面
         try:
             self.HomeP= jsonEditor()

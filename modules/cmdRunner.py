@@ -13,7 +13,7 @@ class ScriptRunner(QWidget):
         self.processes = []  # 用于存储 QProcess 对象
         self.current_index = None  # 用于存储当前显示的页面索引
         self.output_buffers = ['', '', '']  # 缓存每个页面的输出内容
-        self.output_limit = 90000  # 设置输出缓存的最大长度
+        self.output_limit = 50000  # 设置输出缓存的最大长度
 
         # 定期检查缓存长度，超出限制时清除
         self.timer = QTimer(self)
@@ -46,11 +46,18 @@ class ScriptRunner(QWidget):
         btn_layout.addWidget(self.button1)
 
         self.button2 = QPushButton('启动Manyana')
-        self.button2.clicked.connect(lambda: self.handle_button_click(1, './Manyana/main.py', python=True))
+        if os.path.exists("./environments/Python39/python.exe"):
+            self.button2.clicked.connect(lambda: self.handle_button_click(1, './Manyana/main.py', python=True))
+        else:
+            self.button2.clicked.connect(lambda: self.handle_button_click(1, './Manyana/启动脚本.bat', python=False))
         btn_layout.addWidget(self.button2)
 
         self.button3 = QPushButton('启动bing_dalle3')
-        self.button3.clicked.connect(lambda: self.handle_button_click(2, './Manyana/bing_image_creator.py', python=True))
+        if os.path.exists("./environments/Python39/python.exe"):
+            self.button3.clicked.connect(lambda: self.handle_button_click(2, './Manyana/bing_image_creator.py', python=True))
+        else:
+            self.button3.clicked.connect(
+                lambda: self.handle_button_click(2, './Manyana/bing-dalle3启动脚本.bat', python=False))
         btn_layout.addWidget(self.button3)
 
         # 将按钮布局和QStackedWidget添加到主布局
