@@ -4,7 +4,8 @@ import sys
 import os
 import psutil
 from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QTextEdit, QStackedWidget, QHBoxLayout
-from PySide6.QtCore import QProcess, QEvent, QTimer
+from PySide6.QtCore import QProcess, QEvent, QTimer, QSemaphore
+
 
 class ScriptRunner(QWidget):
     def __init__(self):
@@ -13,7 +14,9 @@ class ScriptRunner(QWidget):
         self.processes = []  # 用于存储 QProcess 对象
         self.current_index = None  # 用于存储当前显示的页面索引
         self.output_buffers = ['', '', '']  # 缓存每个页面的输出内容
-        self.output_limit = 50000  # 设置输出缓存的最大长度
+        self.output_limit = 5000  # 设置输出缓存的最大长度
+        self.output_semaphore = QSemaphore(self.output_limit)  # 使用信号量控制缓存大小
+        self.ansi_escape = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')  # 预编译正则表达式
 
         # 定期检查缓存长度，超出限制时清除
         self.timer = QTimer(self)
@@ -114,6 +117,8 @@ class ScriptRunner(QWidget):
         process.start()
 
     def read_output(self, process, text_edit, index):
+        self.output_semaphore.acquire()  # 获取信号量，如果缓存已满则阻塞
+
         output = process.readAllStandardOutput().data()
         error_output = process.readAllStandardError().data()
 
@@ -123,31 +128,30 @@ class ScriptRunner(QWidget):
         text_edit.append(decoded_output)
         text_edit.append(decoded_error_output)
 
-        # 将输出保存到缓存
+        # 将输出保存到缓存，并控制缓存大小
         self.output_buffers[index] += decoded_output + decoded_error_output
+        if len(self.output_buffers[index]) > self.output_limit:
+            self.output_buffers[index] = self.output_buffers[index][-self.output_limit:]
+
+        self.output_semaphore.release()  # 释放信号量
+
+    def clean_output(self, text):
+        # 移除 ANSI 转义序列
+        text = self.ansi_escape.sub('', text)
+        # 移除多余的空白行
+        text = "\n".join([ll.rstrip() for ll in text.splitlines() if ll.strip()])
+        return text
 
     def check_output_length(self):
         # 检查每个页面的输出缓存长度，超过限制则清除
         for index, buffer in enumerate(self.output_buffers):
             if len(buffer) > self.output_limit:
-                self.output_buffers[index] = ''
+                self.output_buffers[index] = buffer[-self.output_limit:]  # 只保留最后 self.output_limit 个字符
+                #text_edit = self.stackedWidget.widget(index)
                 self.stackedWidget.widget(index).clear()
-                print(f"页面 {index} 的输出缓存已清除")
+                #text_edit.setPlainText("")  # 清空 QTextEdit 的内容
+                #text_edit.append(self.output_buffers[index])  # 将最新的缓存内容设置到 QTextEdit
 
-    def clear_logs(self):
-        # 清除所有页面的输出
-        for i in range(self.stackedWidget.count()):
-            self.stackedWidget.widget(i).clear()
-            self.output_buffers[i] = ''
-        print("所有页面的输出缓存已清除")
-
-    def clean_output(self, text):
-        # 移除 ANSI 转义序列
-        ansi_escape = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
-        text = ansi_escape.sub('', text)
-        # 移除多余的空白行
-        text = "\n".join([ll.rstrip() for ll in text.splitlines() if ll.strip()])
-        return text
 
     def try_decode_output(self, data):
         for encoding in ['utf-8', 'gbk', 'cp850']:

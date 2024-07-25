@@ -123,8 +123,10 @@ class EnvironmentChecker(QWidget):
         setup_script = os.path.join(Manyana_DIR, "setUp.py")
 
         os.chdir(Manyana_DIR)  # 改变当前工作目录到Manyana所在目录
-
-        command = f'start cmd /k "{PYTHON_EXE} {setup_script}"'  # 启动一个新的命令提示符窗口执行Python脚本
+        if os.path.exists("./venv") or os.path.exists("./.venv"):
+            command = f'start cmd /k 更新脚本.bat'  # 启动一个新的命令提示符窗口执行Python脚本
+        else:
+            command = f'start cmd /k "{PYTHON_EXE} {setup_script}"'  # 启动一个新的命令提示符窗口执行Python脚本
 
         subprocess.Popen(command, shell=True)
 

@@ -125,7 +125,6 @@ class YamlEditor(QWidget):
         return value  # 默认返回原始字符串
 
     def create_widgets(self, data, layout, parent_key="", level=0):
-        max_label_width = 150
         max_edit_width = 300
         # 计算注释标签的最大宽度
         max_comment_width = self.max_comment_length * 6
@@ -139,25 +138,29 @@ class YamlEditor(QWidget):
                 self.create_widgets(value, groupBoxLayout, parent_key + key + ".", level + 1)
                 groupBox.setLayout(groupBoxLayout)
                 layout.addWidget(groupBox)
+
             elif isinstance(value, list):
-                listLabel = QLabel(f"{key}: {comment}" if comment else key)
-                listLabel.setMaximumWidth(max_label_width)
+                comment = self.get_comment(data, key)  # 获取当前键的注释
+                listLabel = QLabel(f"{key}: {'  # ' + comment if comment else ''}")  # 将注释添加到标签上
+                listLabel.setWordWrap(True)  # 允许标签换行
+                listLabel.setTextInteractionFlags(Qt.TextSelectableByMouse)  # 允许选择文本
                 layout.addWidget(listLabel)
                 listLayout = QVBoxLayout()  # 创建一个新的垂直布局来容纳列表元素
                 for i, item in enumerate(value):
                     self.create_list_item_widget(f"{parent_key}{key}", item, listLayout, i)
-
                 # 在create_widgets方法中，当您为列表类型的数据创建添加按钮时
                 addButton = QPushButton("Add Item")
                 # 使用lambda的默认参数立即绑定parent_key的当前值
-                addButton.clicked.connect(lambda checked=False, pk=parent_key+key: self.add_list_item(pk, len(value), listLayout))
+                addButton.clicked.connect(
+                    lambda checked=False, pk=parent_key + key: self.add_list_item(pk, len(value), listLayout))
                 listLayout.addWidget(addButton)
                 layout.addLayout(listLayout)
+
             else:
                 hLayout = QHBoxLayout()
                 label = QLabel(f"{key}:")
-                label.setMaximumWidth(max_label_width)
                 label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
+                label.setTextInteractionFlags(Qt.TextSelectableByMouse)  # 允许选择文本
 
                 if isinstance(value, bool):
                     edit = QCheckBox()
@@ -171,6 +174,7 @@ class YamlEditor(QWidget):
                 commentLabel.setStyleSheet("color: gray;")
                 commentLabel.setWordWrap(True)
                 commentLabel.setMinimumWidth(max_comment_width)  # 设置最小宽度以对齐注释
+                commentLabel.setTextInteractionFlags(Qt.TextSelectableByMouse)  # 允许选择文本
 
                 hLayout.addWidget(label)
                 hLayout.addWidget(edit)
@@ -265,7 +269,6 @@ class YamlEditor(QWidget):
         itemLabel = QLabel(f"Item {index + 1}:")
         itemLabel.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
         itemEdit = QLineEdit(str(item))
-        #itemEdit.setMaximumWidth(200)
         itemEdit.setMinimumWidth(300)
         itemLayout.addWidget(itemLabel)
         itemLayout.addWidget(itemEdit)
@@ -289,7 +292,7 @@ class YamlMainWindow(QMainWindow):
         self.comboBox.addItem("Manyana/config/controller.yaml", "单个功能控制")
         self.comboBox.addItem("Manyana/config/welcome.yaml", "加群提醒等设置")
         self.comboBox.addItem("Manyana/config/noResponse.yaml", "屏蔽词")
-        self.comboBox.addItem("Manyana/config/gachaSettings.yaml", "额外设定")
+        self.comboBox.addItem("Manyana/config/GroupGameSettings.yaml", "群内游戏设定(以后陆续增加)")
 
 
         # 创建一个用于显示描述信息的 QLabel
